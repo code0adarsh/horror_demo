@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE EXIT 8 LOOP</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        #overlay,
+        #pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #dcdcdc;
+            background: #050505;
+            z-index: 100;
+        }
+
+        #pause-menu {
+            display: none;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 101;
+        }
+
+        #overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 5rem;
+            letter-spacing: 15px;
+            margin-bottom: 50px;
+            color: #e0e0e0;
+            text-shadow: 2px 2px #ff0000, -2px -2px #0000ff;
+            animation: glitch 2s infinite alternate;
+            text-transform: uppercase;
+        }
+
+        .menu-btn {
+            border: 2px solid #fff;
+            padding: 20px 60px;
+            font-size: 1.5rem;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .menu-btn:hover {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+
+        .instructions {
+            margin-top: 60px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 2;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+            width: 50%;
+            z-index: 10;
+        }
+
+        .key {
+            color: #f0a500;
+            font-weight: bold;
+        }
+
+        @keyframes glitch {
+            0% {
+                text-shadow: 2px 2px #ff0000, -2px -2px #0000ff;
+                transform: skewX(0deg);
+            }
+
+            20% {
+                text-shadow: -2px 2px #ff0000, 2px -2px #0000ff;
+                transform: skewX(2deg);
+                opacity: 0.9;
+            }
+
+            100% {
+                text-shadow: 2px -2px #ff0000, -2px 2px #0000ff;
+                transform: skewX(-1deg);
+            }
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            pointer-events: none;
+            text-align: right;
+        }
+
+        #audio-status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #666;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        #hint-text {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            color: #aaa;
+            display: none;
+            pointer-events: none;
+            text-align: center;
+            max-width: 80%;
+            opacity: 0;
+            transition: opacity 2s;
+            font-style: italic;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #000;
+        }
+
+        #phone-help {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        #jumpscare-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            z-index: 200;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+            /* Black/White base */
+            background-size: cover;
+            mix-blend-mode: exclusion;
+        }
+
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.9) 100%);
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="vignette"></div>
+    <div id="jumpscare-overlay"></div>
+
+    <div id="overlay">
+        <h1>ANOMALY LOOP</h1>
+        <button id="start-btn" class="menu-btn">ENTER LOOP</button>
+        <div class="instructions">
+            <span>OBSERVE THE ENVIRONMENT</span><br>
+            <span>MISS AN ANOMALY: <span class="key">RESET</span></span><br>
+            <span>FALSE REPORT: <span class="key">RESET</span></span><br>
+            <span>REACH <span style="color:#fff; text-shadow:0 0 5px #fff">LEVEL 8</span> TO EXIT</span>
+        </div>
+    </div>
+
+    <div id="pause-menu">
+        <h1>PAUSED</h1>
+        <button id="resume-btn" class="menu-btn">RESUME</button>
+    </div>
+
+    <div id="ui-layer">
+        <div>WASD to Move | Mouse to Look | ESC to Pause</div>
+        <div id="debug-fps" style="font-size:10px; opacity:0.5; margin-top:5px;"></div>
+    </div>
+    <div id="phone-help">Phone Signal Lost (Unlock Lvl 3)</div>
+    <div id="audio-status">AUDIO: OFF</div>
+    <div id="hint-text"></div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --------------------------------------------------------------------------------
+        // AUDIO ENGINE (Natural/Organic)
+        // --------------------------------------------------------------------------------
+        const AUDIO = {
+            ctx: null, masterGain: null, ambienceStart: 0, ambienceNode: null,
+
+            init: function () {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 1.0;
+                this.masterGain.connect(this.ctx.destination);
+
+                this.startAmbience();
+                document.getElementById('audio-status').innerText = "AUDIO: ON";
+            },
+
+            startAmbience: function () {
+                if (!this.ctx) return;
+                // 1. Pink Noise (The "Air" / Room Tone)
+                const bufSize = this.ctx.sampleRate * 4;
+                const buffer = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufSize; i++) {
+                    const w = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + w * 0.0555179;
+                    b1 = 0.99332 * b1 + w * 0.0750759;
+                    b2 = 0.96900 * b2 + w * 0.1538520;
+                    b3 = 0.86650 * b3 + w * 0.3104856;
+                    b4 = 0.55000 * b4 + w * 0.5329522;
+                    b5 = -0.7616 * b5 - w * 0.0168980;
+                    data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362;
+                    data[i] *= 0.11;
+                    b6 = w * 0.115926;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer; noise.loop = true;
+
+                const f = this.ctx.createBiquadFilter();
+                f.type = 'lowpass'; f.frequency.value = 600; // Lowered for darker tone
+
+                const g = this.ctx.createGain();
+                g.gain.value = 0.4;
+
+                noise.connect(f); f.connect(g); g.connect(this.masterGain);
+                noise.start();
+                this.ambienceNode = g;
+
+                // 2. Sub-bass (Pressure)
+                const sub = this.ctx.createOscillator(); sub.type = 'sine'; sub.frequency.value = 40;
+                const subG = this.ctx.createGain(); subG.gain.value = 0.08;
+                sub.connect(subG); subG.connect(this.masterGain); sub.start();
+            },
+
+            playBreath: function (isIn, dur, intensity) {
+                if (!this.ctx) return;
+                const bufSize = this.ctx.sampleRate * dur;
+                const buffer = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const src = this.ctx.createBufferSource(); src.buffer = buffer;
+                const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.8; f.frequency.value = isIn ? 700 : 600;
+
+                const g = this.ctx.createGain(); g.gain.setValueAtTime(0, this.ctx.currentTime);
+                const peak = 0.05 * intensity;
+
+                if (isIn) {
+                    g.gain.linearRampToValueAtTime(peak, this.ctx.currentTime + dur * 0.6);
+                    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + dur);
+                } else {
+                    g.gain.setValueAtTime(peak, this.ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+                }
+                src.connect(f); f.connect(g); g.connect(this.masterGain); src.start();
+            },
+
+            footstep: function (run) {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+
+                // 1. Thud (Heel) - Dull, Body weight
+                const osc = this.ctx.createOscillator();
+                osc.frequency.setValueAtTime(60, t); // Lower
+                osc.frequency.exponentialRampToValueAtTime(10, t + 0.1);
+                const g1 = this.ctx.createGain();
+                g1.gain.setValueAtTime(0.25, t);
+                g1.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                osc.connect(g1); g1.connect(this.masterGain);
+                osc.start(t); osc.stop(t + 0.1);
+
+                // 2. Sole/Concrete interaction - Lowpass Noise (NOT Highpass)
+                const bufSize = this.ctx.sampleRate * 0.08;
+                const buffer = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const f = this.ctx.createBiquadFilter();
+                f.type = 'lowpass'; // Key Change: Lowpass makes it dull/concrete, not metallic click
+                f.frequency.value = 1000;
+
+                const g2 = this.ctx.createGain();
+                g2.gain.setValueAtTime(0.1, t);
+                g2.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+                noise.connect(f); f.connect(g2); g2.connect(this.masterGain);
+                noise.start(t);
+            },
+
+            playSFX: function (type) {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+
+                if (type === 'success') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 60;
+                    const g = this.ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t + 0.5); g.gain.linearRampToValueAtTime(0, t + 1.5);
+                    osc.connect(g); g.connect(this.masterGain); osc.start(t); osc.stop(t + 1.5);
+                } else if (type === 'fail') {
+                    const bufSize = this.ctx.sampleRate * 0.5; const buffer = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+                    const src = this.ctx.createBufferSource(); src.buffer = buffer;
+                    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                    src.connect(g); g.connect(this.masterGain); src.start(t);
+                    const osc = this.ctx.createOscillator(); osc.frequency.value = 6000; const g2 = this.ctx.createGain(); g2.gain.setValueAtTime(0.05, t); g2.gain.linearRampToValueAtTime(0, t + 1.0);
+                    osc.connect(g2); g2.connect(this.masterGain); osc.start(t); osc.stop(t + 1.0);
+                } else if (type === 'click') {
+                    const osc = this.ctx.createOscillator(); osc.frequency.value = 2000;
+                    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                    osc.connect(g); g.connect(this.masterGain); osc.start(t); osc.stop(t + 0.05);
+                } else if (type === 'bang') {
+                    const bufSize = this.ctx.sampleRate * 0.2; const buffer = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+                    const src = this.ctx.createBufferSource(); src.buffer = buffer; const g = this.ctx.createGain(); g.gain.setValueAtTime(1.0, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.2); src.connect(g); g.connect(this.masterGain); src.start(t);
+                } else if (type === 'vibrate') {
+                    // Phone Vibrate (Pulse)
+                    const osc = this.ctx.createOscillator(); osc.type = 'square'; osc.frequency.value = 150;
+                    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.1, t); g.gain.linearRampToValueAtTime(0, t + 0.1);
+                    g.gain.setValueAtTime(0.1, t + 0.2); g.gain.linearRampToValueAtTime(0, t + 0.3);
+                    osc.connect(g); g.connect(this.masterGain); osc.start(t); osc.stop(t + 0.4);
+                }
+            },
+            setAmbienceVol: function (v) { if (this.ambienceNode) this.ambienceNode.gain.setTargetAtTime(v, this.ctx.currentTime, 1.0); }
+        };
+
+        // --------------------------------------------------------------------------------
+        // LORE & NARRATIVE
+        // --------------------------------------------------------------------------------
+        const LORE_MESSAGES = [
+            "PROTOCOL STARTED.\nSubject: #429\nObj: Reach Exit 8\n\n[ADMIN]: Good luck.", // Lvl 0
+            "visual_cortex.sync: 84%\n\nIgnore the artifacts.\nThey are just residue.", // Lvl 1
+            "[ALERT]\nSomeone else was here.\nDon't trust the lights.", // Lvl 2
+            "SIGNAL ESTABLISHED.\n\nWe can see you now.\nStay on the path.", // Lvl 3 (Unlock)
+            "Subject #428 failed here.\nHe looked back.\nDon't look back.", // Lvl 4
+            "[WARNING]\nSystem instability detected.\nThe architecture is angry.", // Lvl 5
+            "It's breathing.\nCan you hear it?\nThe loop is alive.", // Lvl 6
+            "almost_there.exe\n\nJust one more push.\nDon't let it fool you.", // Lvl 7
+            "EXIT AUTHORIZED.\n\nYou made it.\nWake up.", // Lvl 8
+        ];
+        // --------------------------------------------------------------------------------
+        // GAME STATE
+        // --------------------------------------------------------------------------------
+        const ANOMALIES = [
+            { id: 'MissingSign', tier: 1, chance: 0.30, type: 'Binary' }, { id: 'DimmedLight', tier: 1, chance: 0.25, type: 'Parametric' }, { id: 'ExtraTrash', tier: 1, chance: 0.20, type: 'Binary' }, { id: 'ColorShift', tier: 1, chance: 0.20, type: 'Parametric' }, { id: 'SoundDelay', tier: 1, chance: 0.15, type: 'Contextual' },
+            { id: 'MovedObject', tier: 2, chance: 0.30, type: 'Parametric' }, { id: 'LightFlicker', tier: 2, chance: 0.25, type: 'Contextual' }, { id: 'ReflectionsWrong', tier: 2, chance: 0.20, type: 'Contextual' }, { id: 'AmbientDrop', tier: 2, chance: 0.20, type: 'Binary' },
+            { id: 'DuplicateObject', tier: 3, chance: 0.25, type: 'Binary' }, { id: 'WrongTexture', tier: 3, chance: 0.20, type: 'Parametric' }, { id: 'ScaleDrift', tier: 3, chance: 0.20, type: 'Parametric' }, { id: 'StreetShortened', tier: 3, chance: 0.15, type: 'Contextual' }, { id: 'AudioMismatch', tier: 3, chance: 0.20, type: 'Contextual' }, { id: 'Mannequin', tier: 3, chance: 0.15, type: 'Binary' },
+            { id: 'PhoneGlitch', tier: 4, chance: 0.30, type: 'Contextual' }, { id: 'LightAvoidance', tier: 4, chance: 0.20, type: 'Contextual' }, { id: 'StreetBreathes', tier: 4, chance: 0.10, type: 'Parametric' }, { id: 'FalseNormal', tier: 4, chance: 0.10, type: 'Meta' }, { id: 'LoudBang', tier: 4, chance: 0.15, type: 'OneShot' }, { id: 'FaceFlash', tier: 5, chance: 0.1, type: 'Jumpscare' }
+        ];
+
+        const HINTS = {
+            'MissingSign': "Writing on the walls...", 'DimmedLight': "Darkness creeps in.", 'ExtraTrash': "Dirtier than usual.", 'ColorShift': "Atmosphere feels wrong.", 'SoundDelay': "Echoes of the past.", 'MovedObject': "Displaced memories.",
+            'LightFlicker': "Unstable power.", 'ReflectionsWrong': "False reflections.", 'AmbientDrop': "Deafening silence.", 'DuplicateObject': "Déjà vu.", 'WrongTexture': "Reality glitches.",
+            'ScaleDrift': "Distorted proportions.", 'StreetShortened': "A cut in space.", 'AudioMismatch': "Phantom sounds.", 'Mannequin': "You are not alone.", 'PhoneGlitch': "Digital betrayal.", 'LightAvoidance': "The light dislikes you.", 'StreetBreathes': "It breathes.", 'FalseNormal': "Trust nothing.", 'LoudBang': "Did you hear that?", 'FaceFlash': "Don't blink."
+        };
+
+        const STATE = {
+            level: 0, isAnomaly: false, activeAnomalyId: null, history: [],
+            gameWon: false, phoneUp: false, phoneUnlocked: false, lastFootstepTime: 0,
+            nextBreathTime: 0, isBreathingIn: true, jumpscareTriggered: false,
+            phoneLightOn: false
+        };
+
+        const CONFIG = {
+            WALK_SPEED: 5.0, RUN_SPEED: 9.0, WALL_HEIGHT: 5.0, PLAYER_EYE_HEIGHT: 1.7, MAIN_LEN: 53
+        };
+
+        let camera, scene, renderer;
+        let playerController;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, isRunning = false;
+        let prevTime = performance.now();
+        let isLocked = false, isPaused = false;
+        let pitch = 0, yaw = 0;
+        let cameraShake = 0;
+        let lights = [];
+        let walls = [];
+        let breathTime = 0;
+        let CURRENT_MAIN_LEN = CONFIG.MAIN_LEN;
+        let BOUNDS = {};
+        let phoneGroup, phoneScreenCtx;
+        let lastMinute = -1;
+        const worldGroup = new THREE.Group();
+
+        init();
+        resetLevel();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
+            scene.fog = new THREE.FogExp2(0x050505, 0.035);
+            const container = document.getElementById('canvas-container');
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            playerController = new THREE.Object3D(); scene.add(playerController);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, CONFIG.PLAYER_EYE_HEIGHT, 0); playerController.add(camera);
+            createPhone();
+            setupInputs();
+            const ambient = new THREE.AmbientLight(0xffffff, 0.15); scene.add(ambient);
+        }
+
+        function createPhone() {
+            phoneGroup = new THREE.Group();
+            phoneGroup.position.set(0.25, -0.8, -0.5); // Start Down
+            phoneGroup.rotation.set(-0.2, -0.1, 0);
+            camera.add(phoneGroup);
+            const caseGeo = new THREE.BoxGeometry(0.18, 0.35, 0.02);
+            const caseMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.8 });
+            phoneGroup.add(new THREE.Mesh(caseGeo, caseMat));
+            const screenGeo = new THREE.PlaneGeometry(0.16, 0.33);
+            const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 512;
+            phoneScreenCtx = cvs.getContext('2d');
+            const screenMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvs) });
+            const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+            screenMesh.position.set(0, 0, 0.011);
+            phoneGroup.add(screenMesh);
+
+            // FLASHLIGHT
+            const spot = new THREE.SpotLight(0xffffff, 2.0, 40, 0.6, 0.5, 1);
+            spot.position.set(0, 0.15, 0);
+            spot.target.position.set(0, 0, -5);
+            phoneGroup.add(spot); phoneGroup.add(spot.target);
+            spot.visible = false;
+
+            updatePhoneScreen();
+        }
+        function updatePhoneScreen() {
+            if (!phoneScreenCtx) return; const c = phoneScreenCtx; const w = 256, h = 512;
+            // Background
+            c.fillStyle = '#050510'; c.fillRect(0, 0, w, h);
+
+            // Header
+            c.fillStyle = '#151530'; c.fillRect(0, 0, w, 60);
+            c.fillStyle = '#fff'; c.font = '20px Arial'; c.textAlign = 'right'; c.fillText("100%", w - 20, 35); c.textAlign = 'left'; c.fillText("5G", 20, 35);
+
+            // Body message
+            const now = new Date(); const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            c.textAlign = 'center';
+
+            if (STATE.activeAnomalyId === 'PhoneGlitch') {
+                c.fillStyle = '#f00'; c.font = 'bold 50px Courier';
+                c.fillText("66:66", w / 2, 150);
+                c.font = '20px Courier'; c.fillStyle = '#a00';
+                c.fillText("UNKNOWN SENDER", w / 2, 250);
+                c.fillText("RUN", w / 2, 300);
+            } else {
+                c.fillStyle = '#fff'; c.font = 'bold 50px Arial'; c.fillText(timeStr, w / 2, 130);
+
+                // MSG Box
+                c.fillStyle = '#222'; c.fillRect(20, 180, w - 40, 250);
+                c.font = '16px monospace'; c.fillStyle = '#0f0'; c.textAlign = 'left';
+
+                let msg = LORE_MESSAGES[STATE.level] || "...";
+                if (!STATE.phoneUnlocked && STATE.level < 3) msg = "NO SIGNAL.\nSEARCHING...";
+
+                wrapText(c, msg, 35, 220, w - 70, 25);
+
+                c.font = 'italic 12px Arial'; c.fillStyle = '#666'; c.textAlign = 'center';
+                const hint = STATE.phoneLightOn ? "Light: ON" : "Light: OFF [Space]";
+                c.fillText(hint, w / 2, 480);
+            }
+
+            if (phoneGroup && phoneGroup.children[1]) phoneGroup.children[1].material.map.needsUpdate = true;
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const lines = text.split('\n');
+            let currentY = y;
+            lines.forEach(line => {
+                const words = line.split(' ');
+                let lineBuf = '';
+                words.forEach(word => {
+                    const testLine = lineBuf + word + ' ';
+                    if (context.measureText(testLine).width > maxWidth) {
+                        context.fillText(lineBuf, x, currentY); lineBuf = word + ' '; currentY += lineHeight;
+                    } else { lineBuf = testLine; }
+                });
+                context.fillText(lineBuf, x, currentY);
+                currentY += lineHeight;
+            });
+        }
+
+        function setupInputs() {
+            const overlay = document.getElementById('overlay');
+            const pauseMenu = document.getElementById('pause-menu');
+            const startBtn = document.getElementById('start-btn');
+            const resumeBtn = document.getElementById('resume-btn');
+
+            startBtn.addEventListener('click', () => { document.body.requestPointerLock(); AUDIO.init(); });
+            resumeBtn.addEventListener('click', () => { document.body.requestPointerLock(); });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === document.body) {
+                    isLocked = true; isPaused = false;
+                    overlay.style.opacity = 0; setTimeout(() => overlay.style.display = 'none', 500);
+                    pauseMenu.style.display = 'none';
+                } else {
+                    isLocked = false;
+                    // If game not won, we are paused
+                    if (!STATE.gameWon) {
+                        isPaused = true;
+                        pauseMenu.style.display = 'flex';
+                    } else {
+                        overlay.style.display = 'flex'; setTimeout(() => overlay.style.opacity = 1, 10);
+                        document.querySelector('#overlay h1').innerText = "ESCAPED";
+                        startBtn.innerText = "PLAY AGAIN"; startBtn.onclick = () => location.reload();
+                    }
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isLocked || isPaused) return;
+                yaw -= e.movementX * 0.002; pitch -= e.movementY * 0.002; pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+                playerController.rotation.y = yaw; camera.rotation.x = pitch + (Math.random() - 0.5) * cameraShake; camera.rotation.z = (Math.random() - 0.5) * cameraShake;
+            });
+            const onKey = (e, val) => {
+                switch (e.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = val; break; case 'ArrowLeft': case 'KeyA': moveLeft = val; break; case 'ArrowDown': case 'KeyS': moveBackward = val; break; case 'ArrowRight': case 'KeyD': moveRight = val; break; case 'ShiftLeft': isRunning = val; break;
+                    case 'KeyF':
+                        if (val) togglePhone(); break;
+                    case 'Space':
+                        if (val && STATE.phoneUp) toggleFlashlight(); break;
+                    case 'Escape': case 'KeyP': if (val && isLocked) document.exitPointerLock(); break;
+                }
+            };
+            document.addEventListener('keydown', e => onKey(e, true)); document.addEventListener('keyup', e => onKey(e, false));
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        }
+
+        function togglePhone() {
+            if (!STATE.phoneUnlocked) {
+                showHint("No Interaction. Signal found at Level 3.");
+                // Just show it briefly then hide? Or just deny?
+                // Let's allow 'looking' but message says "No Signal"
+            }
+            STATE.phoneUp = !STATE.phoneUp;
+            AUDIO.playSFX('click');
+            // Auto-off light if phone goes down
+            if (!STATE.phoneUp && STATE.phoneLightOn) toggleFlashlight();
+        }
+
+        function toggleFlashlight() {
+            STATE.phoneLightOn = !STATE.phoneLightOn;
+            // Group children: [0]=Case, [1]=Screen, [2]=SpotLight, [3]=Target
+            if (phoneGroup && phoneGroup.children[2]) {
+                phoneGroup.children[2].visible = STATE.phoneLightOn;
+            }
+            AUDIO.playSFX('click');
+            updatePhoneScreen();
+        }
+
+        function updatePhysics(delta) {
+            if (!isLocked || isPaused) return;
+
+            cameraShake = Math.max(0, cameraShake - delta * 0.5);
+            if (new Date().getMinutes() !== lastMinute) { updatePhoneScreen(); lastMinute = new Date().getMinutes(); }
+
+            // Breathing
+            const time = AUDIO.ctx ? AUDIO.ctx.currentTime : 0;
+            if (time > STATE.nextBreathTime) {
+                const cycleDur = isRunning ? 1.5 : 3.5;
+                const inhaleDur = cycleDur * 0.4; const exhaleDur = cycleDur * 0.6;
+                let intensity = 1.0; if (isRunning) intensity = 2.0; if (STATE.level > 5) intensity += 0.5; if (STATE.activeAnomalyId === 'StreetBreathes') intensity += 1.0;
+                AUDIO.playBreath(STATE.isBreathingIn, STATE.isBreathingIn ? inhaleDur : exhaleDur, intensity);
+                STATE.nextBreathTime = time + (STATE.isBreathingIn ? inhaleDur : exhaleDur); STATE.isBreathingIn = !STATE.isBreathingIn;
+            }
+
+            const targetY = STATE.phoneUp ? -0.3 : -0.8;
+            phoneGroup.position.y += (targetY - phoneGroup.position.y) * delta * 5;
+            const targetRotZ = -moveLeft ? 0.1 : (moveRight ? -0.1 : 0);
+            phoneGroup.rotation.z += (targetRotZ - phoneGroup.rotation.z) * delta * 2;
+
+            // Anomalies Logic
+            if (STATE.activeAnomalyId === 'StreetBreathes') { breathTime += delta; const factor = Math.sin(breathTime * 1.5); const scale = 1.0 + factor * 0.08; worldGroup.scale.set(scale, 1, scale); camera.fov = 70 + (factor * 10); camera.updateProjectionMatrix(); cameraShake = 0.002; } else { camera.fov = 70; camera.updateProjectionMatrix(); }
+            if (STATE.activeAnomalyId === 'LightAvoidance') { lights.forEach(l => { const dist = playerController.position.distanceTo(l.position); const targetInt = (dist < 10) ? 0.0 : 0.8; l.intensity += (targetInt - l.intensity) * delta * 2.0; }); }
+            if (STATE.activeAnomalyId === 'LightFlicker') { if (Math.random() > 0.92) { lights[1].intensity = Math.random() * 1.5; AUDIO.playSFX('click'); } else lights[1].intensity += (0.8 - lights[1].intensity) * delta * 5; }
+            if (STATE.activeAnomalyId === 'AmbientDrop') { AUDIO.setAmbienceVol(0); } else { AUDIO.setAmbienceVol(0.3); }
+
+            // Jumpscares
+            if (STATE.activeAnomalyId === 'LoudBang' && !STATE.jumpscareTriggered && playerController.position.z > 25) {
+                AUDIO.playSFX('bang');
+                cameraShake = 0.05;
+                STATE.jumpscareTriggered = true;
+            }
+            if (STATE.activeAnomalyId === 'FaceFlash' && !STATE.jumpscareTriggered && Math.random() > 0.99) {
+                const el = document.getElementById('jumpscare-overlay');
+                el.style.display = 'block';
+                AUDIO.playSFX('fail');
+                setTimeout(() => el.style.display = 'none', 100);
+                STATE.jumpscareTriggered = true;
+            }
+
+            const speed = isRunning ? CONFIG.RUN_SPEED : CONFIG.WALK_SPEED; const actualSpeed = speed * delta;
+            const moveVec = new THREE.Vector3(); const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw); const rgt = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+            if (moveForward) moveVec.add(fwd); if (moveBackward) moveVec.sub(fwd); if (moveRight) moveVec.add(rgt); if (moveLeft) moveVec.sub(rgt); moveVec.normalize();
+
+            const isMoving = moveVec.length() > 0;
+            if (isMoving) {
+                const newPos = playerController.position.clone(); newPos.addScaledVector(moveVec, actualSpeed);
+                if (isValid(newPos)) playerController.position.copy(newPos);
+                else {
+                    const tx = playerController.position.clone(); tx.x = newPos.x;
+                    if (isValid(tx)) playerController.position.x = newPos.x;
+                    else { const tz = playerController.position.clone(); tz.z = newPos.z; if (isValid(tz)) playerController.position.z = newPos.z; else cameraShake = 0.01; }
+                }
+                const bobSpeed = isRunning ? 15 : 10; const bobVal = Math.sin(Date.now() * 0.001 * bobSpeed); camera.position.y = CONFIG.PLAYER_EYE_HEIGHT + bobVal * 0.04;
+                if (bobVal < -0.9 && (Date.now() - STATE.lastFootstepTime > 300)) { AUDIO.footstep(isRunning); STATE.lastFootstepTime = Date.now(); if (STATE.activeAnomalyId === 'SoundDelay' && Math.random() > 0.7) setTimeout(() => AUDIO.footstep(isRunning), 200); }
+            }
+
+            const p = playerController.position; if (p.z < -3) checkProgression(false); if (p.z > 35 && Math.abs(p.x - CURRENT_MAIN_LEN) < 4) checkProgression(true);
+        }
+
+        function isValid(p) { const A = BOUNDS.HALL_A; const B = BOUNDS.HALL_B; const C = BOUNDS.HALL_C; const inA = (p.x >= A.xMin && p.x <= A.xMax && p.z >= A.zMin && p.z <= A.zMax); const inB = (p.x >= B.xMin && p.x <= B.xMax && p.z >= B.zMin && p.z <= B.zMax); const inC = (p.x >= C.xMin && p.x <= C.xMax && p.z >= C.zMin && p.z <= C.zMax); return inA || inB || inC; }
+        function selectAnomaly() {
+            if (STATE.level === 0) return null; let prob = 0.45 + (STATE.level * 0.06); if (Math.random() > prob && STATE.level < 7) return null;
+            let validTiers = []; if (STATE.level <= 2) validTiers = [1]; else if (STATE.level <= 4) validTiers = [2]; else if (STATE.level <= 6) validTiers = [3]; else validTiers = [4, 5];
+            let candidates = ANOMALIES.filter(a => validTiers.includes(a.tier) && !STATE.history.includes(a.id));
+            if (candidates.length === 0) return null; const selected = candidates[Math.floor(Math.random() * candidates.length)]; STATE.history.push(selected.id); if (STATE.history.length > 3) STATE.history.shift(); return selected.id;
+        }
+
+        function resetLevel() {
+            while (worldGroup.children.length > 0) worldGroup.remove(worldGroup.children[0]);
+            scene.remove(worldGroup); worldGroup.position.set(0, 0, 0); worldGroup.rotation.set(0, 0, 0); worldGroup.scale.set(1, 1, 1);
+            lights = []; walls = []; breathTime = 0;
+            STATE.jumpscareTriggered = false; // Reset JS
+
+            // UNLOCK PHONE if Lvl >= 3
+            if (STATE.level >= 3 && !STATE.phoneUnlocked) {
+                STATE.phoneUnlocked = true;
+                document.getElementById('phone-help').innerText = "Press [F] for Phone | [SPACE] for Light";
+                showHint("NEW MSG: Signal Established.");
+                AUDIO.playSFX('vibrate');
+            } else if (STATE.level < 3) {
+                STATE.phoneUnlocked = false;
+                STATE.phoneUp = false;
+                document.getElementById('phone-help').innerText = "Signal Lost (Unlock Lvl 3)";
+            } else {
+                // Already unlocked, new level
+                if (STATE.level > 3) AUDIO.playSFX('vibrate');
+            }
+
+            STATE.activeAnomalyId = selectAnomaly(); STATE.isAnomaly = !!STATE.activeAnomalyId;
+            CURRENT_MAIN_LEN = (STATE.activeAnomalyId === 'StreetShortened') ? 20 : CONFIG.MAIN_LEN;
+            updateBounds(); buildGeometry(); updatePhoneScreen();
+            playerController.position.set(0, 0, 0); yaw = Math.PI; pitch = 0; playerController.rotation.y = yaw; camera.rotation.x = 0; cameraShake = 0.05;
+            scene.add(worldGroup); flashScreen();
+        }
+        function updateBounds() { const L = CURRENT_MAIN_LEN; BOUNDS.HALL_A = { xMin: -1.5, xMax: 1.5, zMin: -5, zMax: 18.5 }; BOUNDS.HALL_B = { xMin: -1.5, xMax: L + 1.5, zMin: 18.5, zMax: 21.5 }; BOUNDS.HALL_C = { xMin: L - 1.5, xMax: L + 1.5, zMin: 21.5, zMax: 45 }; }
+        function createTrash(x, z) { const geo = new THREE.DodecahedronGeometry(0.4, 1); const mat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }); const m = new THREE.Mesh(geo, mat); m.position.set(x, 0.3, z); m.scale.set(1, 0.6, 1); m.castShadow = true; m.receiveShadow = true; m.rotation.set(Math.random(), Math.random(), Math.random()); worldGroup.add(m); }
+        function createVendingMachine(x, z, rotY) { const group = new THREE.Group(); group.position.set(x, 1.2, z); group.rotation.y = rotY; const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 1.0), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); body.castShadow = true; body.receiveShadow = true; group.add(body); const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.5), new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.6 })); glass.position.set(0, 0.2, 0.51); group.add(glass); const light = new THREE.PointLight(0x88ccff, 0.5, 3); light.position.set(0, 0.5, 0.6); group.add(light); worldGroup.add(group); walls.push(body); }
+        function createVents(L) {
+            // Ceiling pipes
+            const geo = new THREE.CylinderGeometry(0.2, 0.2, L, 8);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6 });
+            const p = new THREE.Mesh(geo, mat);
+            p.rotation.z = Math.PI / 2;
+            p.position.set(L / 2, 4.5, 20);
+            worldGroup.add(p);
+            const p2 = new THREE.Mesh(geo, mat);
+            p2.rotation.z = Math.PI / 2;
+            p2.position.set(L / 2, 4.7, 20.5);
+            worldGroup.add(p2);
+        }
+
+        function buildGeometry() {
+            // ... (Same Mats)
+            const id = STATE.activeAnomalyId;
+            let colWall = 0x666666; if (id === 'ColorShift') colWall = 0x7a6a6a; if (id === 'WrongTexture') colWall = 0x5e6e66;
+            const mWall = new THREE.MeshStandardMaterial({ color: colWall, roughness: 0.8 });
+            let floorRough = (id === 'ReflectionsWrong') ? 0.05 : 0.7; let floorMetal = (id === 'ReflectionsWrong') ? 0.4 : 0.1;
+            const mFloor = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: floorRough, metalness: floorMetal });
+            const mCeil = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+            const mTrim = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            function wall(w, h, d, x, y, z, mat) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; worldGroup.add(m); walls.push(m); return m; }
+            function plane(w, d, x, y, z, mat) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, d), mat); m.position.set(x, y, z); m.receiveShadow = true; worldGroup.add(m); }
+            function skirt(w, d, x, y, z, orient) { const sH = 0.3; const sD = 0.05; const geo = (orient === 'x') ? new THREE.BoxGeometry(w, sH, sD) : new THREE.BoxGeometry(sD, sH, d); const m = new THREE.Mesh(geo, mTrim); m.position.set(x, y, z); worldGroup.add(m); }
+
+            plane(4, 24, 0, -0.1, 10, mFloor); plane(4, 24, 0, CONFIG.WALL_HEIGHT, 10, mCeil);
+            wall(0.2, CONFIG.WALL_HEIGHT, 22, -2.1, CONFIG.WALL_HEIGHT / 2, 11, mWall); wall(0.2, CONFIG.WALL_HEIGHT, 18, 2.1, CONFIG.WALL_HEIGHT / 2, 9, mWall);
+            skirt(0, 22, -1.95, 0.15, 11, 'z'); skirt(0, 18, 1.95, 0.15, 9, 'z');
+            createTrash(-1, 5); createTrash(1, 8); if (id === 'ExtraTrash') { createTrash(-0.5, 6); createTrash(0.5, 7); createTrash(-1.2, 5.5); }
+
+            const L = CURRENT_MAIN_LEN; const mainW = L + 4; const cX = L / 2;
+            plane(mainW, 4, cX, -0.1, 20, mFloor); plane(mainW, 4, cX, CONFIG.WALL_HEIGHT, 20, mCeil);
+            wall(mainW, CONFIG.WALL_HEIGHT, 0.2, cX + 2, CONFIG.WALL_HEIGHT / 2, 17.9, mWall); wall(mainW, CONFIG.WALL_HEIGHT, 0.2, cX - 2, CONFIG.WALL_HEIGHT / 2, 22.1, mWall);
+            skirt(mainW, 0, cX + 2, 0.15, 18.05, 'x'); skirt(mainW, 0, cX - 2, 0.15, 21.95, 'x');
+
+            // Populate Main Hall (Deterministic)
+            createVents(L);
+            for (let zPos = 10; zPos < L - 5; zPos += 15) {
+                if (zPos !== 20 && zPos !== 30) {
+                    if (zPos % 30 === 10) createVendingMachine(zPos, 18.6, 0);
+                    else createTrash(zPos, 21.5);
+                }
+            }
+
+            plane(4, 27, L, -0.1, 31.5, mFloor); plane(4, 27, L, CONFIG.WALL_HEIGHT, 31.5, mCeil);
+            wall(0.2, CONFIG.WALL_HEIGHT, 23, L - 2.1, CONFIG.WALL_HEIGHT / 2, 33.5, mWall); wall(0.2, CONFIG.WALL_HEIGHT, 27, L + 2.1, CONFIG.WALL_HEIGHT / 2, 31.5, mWall);
+            skirt(0, 23, L - 1.95, 0.15, 33.5, 'z'); skirt(0, 27, L + 1.95, 0.15, 31.5, 'z');
+
+            const propX = (id === 'MovedObject') ? 25 : 20; createVendingMachine(propX, 18.6, 0); if (id === 'DuplicateObject') createVendingMachine(30, 18.6, 0);
+            const la = new THREE.PointLight(0xffaa00, 1.0, 15); la.position.set(0, 3.5, 5); worldGroup.add(la); lights.push(la);
+            let lightInt = (id === 'DimmedLight') ? 0.3 : 0.8; let lightCol = (id === 'ColorShift') ? 0xffcccc : 0xffffff;
+            // Distribute lights along new Length
+            for (let lx = 10; lx < L; lx += 20) {
+                const lb = new THREE.PointLight(lightCol, lightInt, 20); lb.position.set(lx, 5, 20); worldGroup.add(lb); lights.push(lb);
+                // Removed ShadowError logic from here as it's gone
+            }
+
+            const lc = new THREE.PointLight(0xffaa00, 1.0, 15); lc.position.set(L, 3.5, 30); worldGroup.add(lc); lights.push(lc);
+            if (id !== 'MissingSign') { const txt = (id === 'PhoneGlitch') ? "ERR 404" : "LVL " + STATE.level; createSign(new THREE.Vector3(1.9, 1.8, 2), txt); }
+
+            // Mannequin
+            if (id === 'Mannequin') {
+                const mg = new THREE.Group(); mg.position.set(0, 0, L - 5);
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.7, 12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+                body.position.y = 0.85; mg.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+                head.position.y = 1.85; mg.add(head);
+                worldGroup.add(mg);
+            }
+        }
+        // ... [createSign, showHint, flashScreen unchanged] ...
+        function createSign(pos, text) {
+            const cvs = document.createElement('canvas'); cvs.width = 128; cvs.height = 64; const c = cvs.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, 128, 64); c.fillStyle = '#0f0'; c.font = '40px monospace'; c.fillText(text, 10, 45);
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvs) })); mesh.position.copy(pos); mesh.rotation.y = -Math.PI / 2; worldGroup.add(mesh);
+        }
+        function showHint(text) { const h = document.getElementById('hint-text'); h.innerText = text; h.style.display = 'block'; setTimeout(() => h.style.opacity = 1, 10); setTimeout(() => h.style.opacity = 0, 4000); setTimeout(() => h.style.display = 'none', 5000); }
+        function flashScreen() { const d = document.createElement('div'); d.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;opacity:1;transition:opacity 0.8s;pointer-events:none;z-index:999"; document.body.appendChild(d); setTimeout(() => d.style.opacity = 0, 50); setTimeout(() => d.remove(), 900); }
+        function checkProgression(wentForward) {
+            let correct = (STATE.isAnomaly && !wentForward) || (!STATE.isAnomaly && wentForward);
+            if (correct) { STATE.level++; AUDIO.playSFX('success'); }
+            else {
+                if (STATE.isAnomaly) { const hint = HINTS[STATE.activeAnomalyId] || "Something was wrong."; showHint(hint); } else { showHint("There was nothing there. Trust your eyes."); }
+                STATE.level = 0; AUDIO.playSFX('fail'); flashScreen();
+            }
+            if (STATE.level >= 8) { STATE.gameWon = true; document.exitPointerLock(); } else resetLevel();
+        }
+        function animate() {
+            requestAnimationFrame(animate); const time = performance.now(); const delta = (time - prevTime) / 1000; prevTime = time; updatePhysics(delta); renderer.render(scene, camera);
+        }
+    </script>
+</body>
+
+</html>
