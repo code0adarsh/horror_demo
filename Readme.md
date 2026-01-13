@@ -1,4 +1,4 @@
-# Implementation Plan - THE EXIT 8 LOOP
+# Implementation Plan - THE LOOP
 
 ## Goal Description
 Create a psychological horror walking simulator inspired by "The Exit 8". The player traverses a looping hallway, spotting anomalies to decide whether to continue forward or turn back. The goal is to reach Level 8.
@@ -75,3 +75,4 @@ Create a psychological horror walking simulator inspired by "The Exit 8". The pl
 - **Engine**: Three.js (r128)
 - **Audio**: Web Audio API (Tone generation & Filtering)
 - **Language**: Vanilla JavaScript / HTML5
+
